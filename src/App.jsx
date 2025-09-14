@@ -1,5 +1,5 @@
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Application, Assets, Container, Sprite, Graphics } from "pixi.js";
 import * as web3 from "@solana/web3.js";
 
@@ -208,23 +208,23 @@ export default function ArcadeBossBattle() {
     }
   }, [visibleHorde]);
 
+  // ✅ FIXED: make sure this is an async function and 'await' stays inside it
   async function handleFetch() {
     setLoading(true);
-  }
-
-    setWinner(null); setPhase("idle");
+    setWinner(null);
+    setPhase("idle");
     try {
       let data;
       if (useDemo) {
         const demo = Array.from({ length: 3000 }, (_, i) => ({
           owner: `DemoWallet_${i.toString().padStart(4, "0")}`,
-          amount: BigInt(1000 + Math.floor(Math.random()*100000))
+          amount: BigInt(1000 + Math.floor(Math.random() * 100000)),
         }));
         data = demo;
       } else {
         data = await fetchHolders(mint.trim(), rpc.trim(), indexerKey.trim());
       }
-      if (!data || !data.length) throw new Error("No holders found. Check mint or use a CORS‑enabled RPC/indexer.");
+      if (!data || !data.length) throw new Error("No holders found. Check mint or use a CORS-enabled RPC/indexer.");
       setHolders(data);
       setVisibleHorde(sample(data, CONFIG.fighters.totalVisibleDots));
       setPhase("ready");
@@ -245,16 +245,23 @@ export default function ArcadeBossBattle() {
     let roster = [...holders];
 
     while (roster.length > CONFIG.phases.finalCount) {
-      const burst = Math.floor(CONFIG.phases.eliminationsPerBurst.min + Math.random() * (CONFIG.phases.eliminationsPerBurst.max - CONFIG.phases.eliminationsPerBurst.min + 1));
+      const burst = Math.floor(
+        CONFIG.phases.eliminationsPerBurst.min +
+        Math.random() *
+          (CONFIG.phases.eliminationsPerBurst.max - CONFIG.phases.eliminationsPerBurst.min + 1)
+      );
       const n = Math.min(burst, roster.length - CONFIG.phases.finalCount);
 
       for (let i = 0; i < n; i++) {
         const idx = Math.floor(Math.random() * roster.length);
         const [removed] = roster.splice(idx, 1);
-        const dot = horde.children.find(c => c.wallet === removed.owner);
+        const dot = horde.children.find((c) => c.wallet === removed.owner);
         if (dot) {
           const fx = Sprite.from(SPRITES.fxExplosion);
-          fx.x = dot.x; fx.y = dot.y; fx.anchor.set(0.5); fx.scale.set(0.75 + Math.random()*0.5);
+          fx.x = dot.x;
+          fx.y = dot.y;
+          fx.anchor.set(0.5);
+          fx.scale.set(0.75 + Math.random() * 0.5);
           horde.addChild(fx);
           dot.destroy();
           setTimeout(() => fx.destroy(), 350);
@@ -271,10 +278,13 @@ export default function ArcadeBossBattle() {
       const idx = Math.floor(Math.random() * roster.length);
       const [removed] = roster.splice(idx, 1);
       const app2 = appRef.current; if (!app2) break;
-      const dot = app2.stage.horde.children.find(c => c.wallet === removed.owner);
+      const dot = app2.stage.horde.children.find((c) => c.wallet === removed.owner);
       if (dot) {
         const fx = Sprite.from(SPRITES.fxExplosion);
-        fx.x = dot.x; fx.y = dot.y; fx.anchor.set(0.5); fx.scale.set(1.2);
+        fx.x = dot.x;
+        fx.y = dot.y;
+        fx.anchor.set(0.5);
+        fx.scale.set(1.2);
         app2.stage.horde.addChild(fx);
         dot.destroy();
         setTimeout(() => fx.destroy(), 450);
@@ -310,59 +320,61 @@ export default function ArcadeBossBattle() {
         <div className="panel col">
           <strong>Winner Engine</strong>
           <label>Token Mint (Contract)</label>
-          <input className="input" value={mint} onChange={e=>setMint(e.target.value)} placeholder="Enter SPL token mint address" />
+          <input className="input" value={mint} onChange={(e) => setMint(e.target.value)} placeholder="Enter SPL token mint address" />
           <label>RPC URL (CORS-enabled)</label>
-          <input className="input" value={rpc} onChange={e=>setRpc(e.target.value)} />
+          <input className="input" value={rpc} onChange={(e) => setRpc(e.target.value)} />
           <label>Indexer API Key (optional)</label>
-          <input className="input" value={indexerKey} onChange={e=>setIndexerKey(e.target.value)} placeholder="If configured in code" />
-          <label className="row"><input type="checkbox" checked={useDemo} onChange={e=>setUseDemo(e.target.checked)} /> <span>Use demo holders (3,000)</span></label>
+          <input className="input" value={indexerKey} onChange={(e) => setIndexerKey(e.target.value)} placeholder="If configured in code" />
+          <label className="row">
+            <input type="checkbox" checked={useDemo} onChange={(e) => setUseDemo(e.target.checked)} /> <span>Use demo holders (3,000)</span>
+          </label>
           <div className="row">
             <button className="btn alt" disabled={loading} onClick={handleFetch}>{loading ? "Fetching…" : "Fetch Holders"}</button>
-            <button className="btn" disabled={(phase!=="ready" && phase!=="idle") || !holders.length} onClick={handleStart}>Start Battle</button>
-            <button className="btn gray" onClick={()=>{setPhase("idle"); setWinner(null); setVisibleHorde([]);}}>Reset</button>
+            <button className="btn" disabled={(phase !== "ready" && phase !== "idle") || !holders.length} onClick={handleStart}>Start Battle</button>
+            <button className="btn gray" onClick={() => { setPhase("idle"); setWinner(null); setVisibleHorde([]); }}>Reset</button>
           </div>
-          <div style={{opacity:.8,fontSize:12,marginTop:6}}>
+          <div style={{ opacity: .8, fontSize: 12, marginTop: 6 }}>
             Status: <span className="mono">{phase.toUpperCase()}</span> • Holders: <span className="mono">{holders.length || 0}</span>
           </div>
           {winner && (
-            <div className="panel" style={{marginTop:8}}>
-              <div style={{opacity:.7,fontSize:12}}>Winner</div>
-              <div className="mono" style={{wordBreak:"break-all", color:"#34d399"}}>{winner.owner}</div>
-              <div className="row" style={{marginTop:8}}>
+            <div className="panel" style={{ marginTop: 8 }}>
+              <div style={{ opacity: .7, fontSize: 12 }}>Winner</div>
+              <div className="mono" style={{ wordBreak: "break-all", color: "#34d399" }}>{winner.owner}</div>
+              <div className="row" style={{ marginTop: 8 }}>
                 <button className="btn alt" onClick={copyWinner}>Copy Address</button>
               </div>
             </div>
           )}
         </div>
         <div className="panel">
-          <div style={{borderRadius:12, overflow:"hidden", border:"1px solid rgba(120,120,140,.35)"}}>
+          <div style={{ borderRadius: 12, overflow: "hidden", border: "1px solid rgba(120,120,140,.35)" }}>
             <div ref={viewRef} style={{ width: CONFIG.arena.width + "px", height: CONFIG.arena.height + "px", imageRendering: "pixelated" }} />
           </div>
           {phase === "winner" && winner && (
-            <div className="panel" style={{marginTop:12, background:"linear-gradient(90deg,#065f46,#6d28d9)"}}>
-              <div style={{fontSize:20, fontWeight:800}}>🏆 Champion Crowned!</div>
-              <div className="mono" style={{wordBreak:"break-all"}}>{winner.owner}</div>
+            <div className="panel" style={{ marginTop: 12, background: "linear-gradient(90deg,#065f46,#6d28d9)" }}>
+              <div style={{ fontSize: 20, fontWeight: 800 }}>🏆 Champion Crowned!</div>
+              <div className="mono" style={{ wordBreak: "break-all" }}>{winner.owner}</div>
             </div>
           )}
         </div>
       </div>
 
-      <div className="grid grid-3" style={{marginTop:16}}>
+      <div className="grid grid-3" style={{ marginTop: 16 }}>
         <div className="panel">
-          <div style={{fontWeight:700, marginBottom:8}}>Leaderboard (stub)</div>
-          <div style={{opacity:.8, fontSize:14, marginBottom:10}}>Hook this to your backend that records cycles.</div>
-          <ul className="mono" style={{fontSize:14, lineHeight:1.8}}>
-            <li>Tokens Bought: <span style={{color:"#34d399"}}>{stats.tokensBought.toString()}</span></li>
-            <li>USD Bought: <span style={{color:"#34d399"}}>${stats.usdBought.toFixed(2)}</span></li>
-            <li>Tokens Given: <span style={{color:"#f472b6"}}>{stats.tokensGiven.toString()}</span></li>
-            <li>USD Given: <span style={{color:"#f472b6"}}>${stats.usdGiven.toFixed(2)}</span></li>
+          <div style={{ fontWeight: 700, marginBottom: 8 }}>Leaderboard (stub)</div>
+          <div style={{ opacity: .8, fontSize: 14, marginBottom: 10 }}>Hook this to your backend that records cycles.</div>
+          <ul className="mono" style={{ fontSize: 14, lineHeight: 1.8 }}>
+            <li>Tokens Bought: <span style={{ color: "#34d399" }}>{stats.tokensBought.toString()}</span></li>
+            <li>USD Bought: <span style={{ color: "#34d399" }}>${(stats.usdBought).toFixed(2)}</span></li>
+            <li>Tokens Given: <span style={{ color: "#f472b6" }}>{stats.tokensGiven.toString()}</span></li>
+            <li>USD Given: <span style={{ color: "#f472b6" }}>${(stats.usdGiven).toFixed(2)}</span></li>
           </ul>
         </div>
-        <div className="panel" style={{gridColumn:'span 1 / -1'}}>
-          <div style={{fontWeight:700, marginBottom:8}}>Integration Notes</div>
-          <ol style={{opacity:.9, fontSize:14, lineHeight:1.7, paddingLeft:18}}>
+        <div className="panel" style={{ gridColumn: 'span 1 / -1' }}>
+          <div style={{ fontWeight: 700, marginBottom: 8 }}>Integration Notes</div>
+          <ol style={{ opacity: .9, fontSize: 14, lineHeight: 1.7, paddingLeft: 18 }}>
             <li><b>Holders:</b> Prefer an indexer (Helius/Shyft/etc.). Replace <code>fetchHoldersViaIndexer</code>. Ensure CORS.</li>
-            <li><b>Fairness:</b> RNG seeded from <code>getLatestBlockhash</code>. For VRF/commit‑reveal, anchor to a specific slot.</li>
+            <li><b>Fairness:</b> RNG seeded from <code>getLatestBlockhash</code>. For VRF/commit-reveal, anchor to a specific slot.</li>
             <li><b>Leaderboard:</b> Point to a backend endpoint returning totals + USD. Replace the demo ticker.</li>
             <li><b>Stream:</b> Add SFX (whooshes, explosions) with <code>new Audio().play()</code> at burst timings.</li>
             <li><b>Assets:</b> Swap pixel art background/boss/explosion with your own sprites.</li>
